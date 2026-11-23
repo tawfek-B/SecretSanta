@@ -7,8 +7,8 @@ use App\Models\GameSetting;
 use App\Models\Item;
 use App\Models\Spin;
 use App\Models\User;
-use Illuminate\Http\Request;
 use App\Services\SpinService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
@@ -32,7 +32,7 @@ class AdminController extends Controller
     // Edit an item.
     public function updateItem(Request $request, Item $item)
     {
-        if (!$item->is_available) {
+        if (! $item->is_available) {
             return response()->json([
                 'message' => 'Assigned items cannot be edited.',
             ], 409);
@@ -71,7 +71,7 @@ class AdminController extends Controller
             if ($validated['enabled']) {
 
                 // Generate assignments only if this is the first time.
-                if (!\App\Models\Spin::exists()) {
+                if (! Spin::exists()) {
                     $spinService->generateAssignments();
                 }
             }
@@ -88,13 +88,13 @@ class AdminController extends Controller
 
             'spinning_enabled' => $settings->spinning_enabled,
 
-            'assignments_generated' => \App\Models\Spin::exists(),
+            'assignments_generated' => Spin::exists(),
         ]);
     }
 
     public function spins()
     {
-        $spins = \App\Models\Spin::with([
+        $spins = Spin::with([
             'user:id,username,nickname',
             'recipient:id,username,nickname',
         ])

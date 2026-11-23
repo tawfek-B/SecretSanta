@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\GameSetting;
-use App\Models\Item;
+use App\Models\Spin;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class GameController extends Controller
 {
@@ -20,7 +22,7 @@ class GameController extends Controller
             ->first();
 
         // All participants except the current user.
-        $participants = \App\Models\User::where('is_admin', false)
+        $participants = User::where('is_admin', false)
             ->where('is_active', true)
             ->where('id', '!=', $user->id)
             ->orderBy('id')
@@ -52,7 +54,7 @@ class GameController extends Controller
             ->with('recipient')
             ->first();
 
-        if (!$spin || !$spin->revealed_at) {
+        if (! $spin || ! $spin->revealed_at) {
             return response()->json([
                 'message' => 'You have not spun yet.',
             ], 404);
@@ -72,7 +74,7 @@ class GameController extends Controller
     {
         $user = $request->user();
 
-        $result = \Illuminate\Support\Facades\DB::transaction(
+        $result = DB::transaction(
             function () use ($user) {
 
                 // Lock settings while processing the request.
@@ -81,12 +83,12 @@ class GameController extends Controller
                     ->firstOrFail();
 
                 // Find the user's pre-generated assignment.
-                $spin = \App\Models\Spin::where('user_id', $user->id)
+                $spin = Spin::where('user_id', $user->id)
                     ->with('recipient')
                     ->lockForUpdate()
                     ->first();
 
-                if (!$spin) {
+                if (! $spin) {
                     abort(409, 'No Secret Santa assignment exists for your account.');
                 }
 
@@ -99,7 +101,7 @@ class GameController extends Controller
                 }
 
                 // Check whether spinning is enabled.
-                if (!$settings->spinning_enabled) {
+                if (! $settings->spinning_enabled) {
                     abort(403, 'Secret Santa is currently disabled.');
                 }
 
