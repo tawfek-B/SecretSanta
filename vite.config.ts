@@ -30,8 +30,8 @@ export default defineConfig({
         }),
     ]),
     alias: {
-            'ziggy-js': path.resolve('vendor/tightenco/ziggy'),
-        },
+        'ziggy-js': path.resolve('vendor/tightenco/ziggy'),
+    },
     server: {
         watch: {
             ignored: [
