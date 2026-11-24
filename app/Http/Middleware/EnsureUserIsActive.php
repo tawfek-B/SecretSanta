@@ -13,7 +13,7 @@ class EnsureUserIsActive
         Closure $next
     ): Response {
 
-        if (!$request->user() || !$request->user()->is_active) {
+        if (! $request->user() || ! $request->user()->is_active) {
             return response()->json([
                 'message' => 'Your account is inactive.',
             ], 403);

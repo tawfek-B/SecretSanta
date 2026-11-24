@@ -7,8 +7,8 @@ use App\Models\GameSetting;
 use App\Models\Item;
 use App\Models\Spin;
 use App\Models\User;
-use Illuminate\Http\Request;
 use App\Services\SpinService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
@@ -32,7 +32,7 @@ class AdminController extends Controller
     // Edit an item.
     public function updateItem(Request $request, Item $item)
     {
-        if (!$item->is_available) {
+        if (! $item->is_available) {
             return response()->json([
                 'message' => 'Assigned items cannot be edited.',
             ], 409);
@@ -51,50 +51,28 @@ class AdminController extends Controller
         ]);
     }
 
-    public function updateSpinning(
-        Request $request,
-        SpinService $spinService,
-    ) {
+    public function updateSpinning(Request $request)
+    {
         $validated = $request->validate([
             'enabled' => ['required', 'boolean'],
         ]);
 
-        $settings = DB::transaction(function () use (
-            $validated,
-            $spinService
-        ) {
+        $settings = GameSetting::findOrFail(1);
 
-            $settings = GameSetting::where('id', 1)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($validated['enabled']) {
-
-                // Generate assignments only if this is the first time.
-                if (!\App\Models\Spin::exists()) {
-                    $spinService->generateAssignments();
-                }
-            }
-
-            $settings->update([
-                'spinning_enabled' => $validated['enabled'],
-            ]);
-
-            return $settings;
-        }, 3);
+        $settings->update([
+            'spinning_enabled' => $validated['enabled'],
+        ]);
 
         return response()->json([
             'message' => 'Secret Santa settings updated.',
-
             'spinning_enabled' => $settings->spinning_enabled,
-
-            'assignments_generated' => \App\Models\Spin::exists(),
+            'draw_started' => Spin::exists(),
         ]);
     }
 
     public function spins()
     {
-        $spins = \App\Models\Spin::with([
+        $spins = Spin::with([
             'user:id,username,nickname',
             'recipient:id,username,nickname',
         ])
@@ -139,8 +117,7 @@ class AdminController extends Controller
     public function users()
     {
         return response()->json([
-            'users' => User::where('is_admin', false)
-                ->with('spin.recipient:id,username,nickname')
+            'users' => User::with('spin.recipient:id,username,nickname')
                 ->get([
                     'id',
                     'nickname',

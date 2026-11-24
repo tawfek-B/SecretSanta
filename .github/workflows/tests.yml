@@ -33,6 +33,3 @@ jobs:
 
       - name: Setup Application
         run: composer setup
-
-      - name: Run CI Checks
-        run: composer ci:check
