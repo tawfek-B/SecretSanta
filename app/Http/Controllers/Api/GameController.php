@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\GameSetting;
-use App\Models\Item;
+use App\Models\Spin;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class GameController extends Controller
 {
@@ -19,10 +21,12 @@ class GameController extends Controller
             ->with('recipient')
             ->first();
 
-        // All participants except the current user.
-        $participants = \App\Models\User::where('is_admin', false)
-            ->where('is_active', true)
+        $participants = User::where('is_active', true)
             ->where('id', '!=', $user->id)
+            ->whereNotIn(
+                'id',
+                Spin::select('recipient_user_id')
+            )
             ->orderBy('id')
             ->get([
                 'id',
@@ -52,7 +56,7 @@ class GameController extends Controller
             ->with('recipient')
             ->first();
 
-        if (!$spin || !$spin->revealed_at) {
+        if (! $spin || ! $spin->revealed_at) {
             return response()->json([
                 'message' => 'You have not spun yet.',
             ], 404);
@@ -72,49 +76,87 @@ class GameController extends Controller
     {
         $user = $request->user();
 
-        $result = \Illuminate\Support\Facades\DB::transaction(
-            function () use ($user) {
+        $result = DB::transaction(function () use ($user) {
 
-                // Lock settings while processing the request.
-                $settings = GameSetting::where('id', 1)
-                    ->lockForUpdate()
-                    ->firstOrFail();
+            // Serialize all draws so recipients cannot be selected twice.
+            $settings = GameSetting::where('id', 1)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-                // Find the user's pre-generated assignment.
-                $spin = \App\Models\Spin::where('user_id', $user->id)
-                    ->with('recipient')
-                    ->lockForUpdate()
-                    ->first();
+            // If this user already drew, always return the same result.
+            $existingSpin = Spin::where('user_id', $user->id)
+                ->with('recipient')
+                ->first();
 
-                if (!$spin) {
-                    abort(409, 'No Secret Santa assignment exists for your account.');
-                }
-
-                // If already revealed, return the same result.
-                if ($spin->revealed_at) {
-                    return [
-                        'already_spun' => true,
-                        'spin' => $spin,
-                    ];
-                }
-
-                // Check whether spinning is enabled.
-                if (!$settings->spinning_enabled) {
-                    abort(403, 'Secret Santa is currently disabled.');
-                }
-
-                // Reveal the permanent assignment.
-                $spin->update([
-                    'revealed_at' => now(),
-                ]);
-
+            if ($existingSpin) {
                 return [
-                    'already_spun' => false,
-                    'spin' => $spin->load('recipient'),
+                    'already_spun' => true,
+                    'spin' => $existingSpin,
                 ];
-            },
-            3
-        );
+            }
+
+            if (! $settings->spinning_enabled) {
+                abort(403, 'Secret Santa is currently disabled.');
+            }
+
+            if ($user->is_admin || ! $user->is_active) {
+                abort(403, 'Your account cannot participate.');
+            }
+
+            // Participants who have not drawn yet.
+            $remainingGivers = User::where('is_admin', false)
+                ->where('is_active', true)
+                ->whereNotIn(
+                    'id',
+                    Spin::select('user_id')
+                )
+                ->get(['id']);
+
+            if ($remainingGivers->count() < 2) {
+                abort(409, 'There are not enough remaining participants to draw.');
+            }
+
+            // Recipients who have not already been selected.
+            $availableRecipients = User::where('is_admin', false)
+                ->where('is_active', true)
+                ->whereNotIn(
+                    'id',
+                    Spin::select('recipient_user_id')
+                )
+                ->where('id', '!=', $user->id);
+
+            if ($remainingGivers->count() === 2) {
+                // Final two participants: force a pair so neither gets themselves.
+                $otherGiver = $remainingGivers
+                    ->firstWhere('id', '!=', $user->id);
+
+                $recipient = $availableRecipients
+                    ->where('id', $otherGiver->id)
+                    ->first();
+            } else {
+                // Normal draw: choose a random available recipient.
+                $recipient = $availableRecipients
+                    ->inRandomOrder()
+                    ->first();
+            }
+
+            if (! $recipient) {
+                abort(409, 'No valid recipient is available.');
+            }
+
+            // Save the draw immediately. It cannot be changed afterward.
+            $spin = Spin::create([
+                'user_id' => $user->id,
+                'recipient_user_id' => $recipient->id,
+                'spun_at' => now(),
+                'revealed_at' => now(),
+            ]);
+
+            return [
+                'already_spun' => false,
+                'spin' => $spin->load('recipient'),
+            ];
+        }, 3);
 
         return response()->json([
             'message' => $result['already_spun']
@@ -128,7 +170,7 @@ class GameController extends Controller
                 'nickname' => $result['spin']->recipient->nickname,
             ],
 
-            'spun_at' => $result['spin']->revealed_at,
+            'spun_at' => $result['spin']->spun_at,
         ]);
     }
 }

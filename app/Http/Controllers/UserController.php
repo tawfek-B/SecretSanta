@@ -28,7 +28,6 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-
     public function store(Request $request)
     {
         if (Spin::exists()) {
@@ -83,9 +82,8 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        $user->update([
-            'is_active' => false,
-        ]);
+        $user->is_active = false;
+        $user->save();
 
         return redirect()->route('home')
             ->with('success', 'User deactivated successfully.');
