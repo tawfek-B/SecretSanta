@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->boolean('is_admin')->default(false);
             $table->string('password');
+            $table->boolean('got_gift')->default(false);
             $table->rememberToken();
             $table->timestamps();
         });

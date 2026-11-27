@@ -88,11 +88,15 @@ class AdminController extends Controller
                     'giver' => [
                         'id' => $spin->user->id,
                         'nickname' => $spin->user->nickname,
+                        'username' => $spin->user->username,
+                        'got_gift' => $spin->user->got_gift,
                     ],
 
                     'recipient' => [
                         'id' => $spin->recipient->id,
                         'nickname' => $spin->recipient->nickname,
+                        'username' => $spin->recipient->username,
+                        'got_gift' => $spin->recipient->got_gift,
                     ],
 
                     'revealed' => $spin->revealed_at !== null,

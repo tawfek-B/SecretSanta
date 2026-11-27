@@ -31,6 +31,8 @@ class GameController extends Controller
             ->get([
                 'id',
                 'nickname',
+                'username',
+                'got_gift',
             ]);
 
         return response()->json([
@@ -42,6 +44,8 @@ class GameController extends Controller
             'my_result' => $spin && $spin->revealed_at ? [
                 'id' => $spin->recipient->id,
                 'nickname' => $spin->recipient->nickname,
+                'username' => $spin->recipient->username,
+                'got_gift' => $spin->recipient->got_gift,
             ] : null,
 
             'participants' => $participants,
@@ -66,6 +70,8 @@ class GameController extends Controller
             'recipient' => [
                 'id' => $spin->recipient->id,
                 'nickname' => $spin->recipient->nickname,
+                'username' => $spin->recipient->username,
+                'got_gift' => $spin->recipient->got_gift,
             ],
 
             'spun_at' => $spin->revealed_at,
@@ -166,6 +172,8 @@ class GameController extends Controller
             'result' => [
                 'id' => $result['spin']->recipient->id,
                 'nickname' => $result['spin']->recipient->nickname,
+                'username' => $result['spin']->recipient->username,
+                'got_gift' => $result['spin']->recipient->got_gift,
             ],
 
             'spun_at' => $result['spin']->spun_at,

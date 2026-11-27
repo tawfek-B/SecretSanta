@@ -12,7 +12,7 @@ return new class extends Migration
         Schema::create('game_settings', function (Blueprint $table) {
             $table->id();
 
-            $table->boolean('spinning_enabled')->default(false);
+            $table->boolean('spinning_enabled')->default(true);
 
             $table->timestamps();
         });

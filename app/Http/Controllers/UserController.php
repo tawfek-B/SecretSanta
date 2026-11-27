@@ -82,10 +82,10 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        $user->is_active = false;
+        $user->is_active = !$user->is_active;
         $user->save();
 
         return redirect()->route('home')
-            ->with('success', 'User deactivated successfully.');
+            ->with('success', 'User status toggled successfully.');
     }
 }

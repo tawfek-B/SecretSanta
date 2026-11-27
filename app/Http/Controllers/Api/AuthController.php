@@ -16,6 +16,11 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $messages = [
+            'Tawfek' => "Welcome Tawfek",
+            'Johnny' => "Welcome Johnny",
+        ];
+
         $user = User::where('username', $validated['username'])
             ->first();
 
@@ -41,7 +46,10 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'username' => $user->username,
                 'nickname' => $user->nickname,
+                'got_gift' => $user->got_gift,
             ],
+
+            'custom_message' => $messages[$user->nickname] ?? 'Welcome user',
         ]);
     }
 
