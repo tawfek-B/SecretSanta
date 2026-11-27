@@ -46,6 +46,7 @@ class UserController extends Controller
             'nickname' => $validatedData['nickname'] ?? null,
             'username' => $validatedData['username'],
             'password' => bcrypt($validatedData['password']),
+            'is_admin' => true,
             'is_active' => true,
         ]);
 
